@@ -52,6 +52,14 @@ export class AppStoreConnectClient {
     return this.request<T>('PATCH', url, data);
   }
 
+  async uploadBinaryToUrl(url: string, data: Buffer, headers: Record<string, string>): Promise<void> {
+    await axios.put(url, data, {
+      headers,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+  }
+
   async downloadFromUrl(url: string): Promise<any> {
     const token = await this.authService.generateToken();
     

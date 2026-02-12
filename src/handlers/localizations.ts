@@ -23,28 +23,27 @@ export class LocalizationHandlers {
     };
   }): Promise<ListAppStoreVersionsResponse> {
     const { appId, limit = 100, filter } = args;
-    
+
     validateRequired(args, ['appId']);
-    
+
     const params: Record<string, any> = {
       limit: sanitizeLimit(limit),
-      'filter[app]': appId
     };
-    
+
     if (filter?.platform) {
       params['filter[platform]'] = filter.platform;
     }
-    
+
     if (filter?.versionString) {
       params['filter[versionString]'] = filter.versionString;
     }
-    
+
     if (filter?.appStoreState) {
       params['filter[appStoreState]'] = filter.appStoreState;
     }
-    
+
     return this.client.get<ListAppStoreVersionsResponse>(
-      '/appStoreVersions',
+      `/apps/${appId}/appStoreVersions`,
       params
     );
   }
@@ -54,16 +53,15 @@ export class LocalizationHandlers {
     limit?: number;
   }): Promise<ListAppStoreVersionLocalizationsResponse> {
     const { appStoreVersionId, limit = 100 } = args;
-    
+
     validateRequired(args, ['appStoreVersionId']);
-    
+
     const params: Record<string, any> = {
       limit: sanitizeLimit(limit),
-      'filter[appStoreVersion]': appStoreVersionId
     };
-    
+
     return this.client.get<ListAppStoreVersionLocalizationsResponse>(
-      '/appStoreVersionLocalizations',
+      `/appStoreVersions/${appStoreVersionId}/appStoreVersionLocalizations`,
       params
     );
   }
