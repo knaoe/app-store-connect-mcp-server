@@ -12,15 +12,16 @@ import axios from 'axios';
 
 import { AppStoreConnectConfig } from './types/index.js';
 import { AppStoreConnectClient } from './services/index.js';
-import { 
-  AppHandlers, 
-  BetaHandlers, 
-  BundleHandlers, 
-  DeviceHandlers, 
-  UserHandlers, 
+import {
+  AppHandlers,
+  BetaHandlers,
+  BundleHandlers,
+  DeviceHandlers,
+  UserHandlers,
   AnalyticsHandlers,
   XcodeHandlers,
-  LocalizationHandlers 
+  LocalizationHandlers,
+  ScreenshotHandlers
 } from './handlers/index.js';
 
 // Load environment variables
@@ -42,6 +43,7 @@ class AppStoreConnectServer {
   private analyticsHandlers: AnalyticsHandlers;
   private xcodeHandlers: XcodeHandlers;
   private localizationHandlers: LocalizationHandlers;
+  private screenshotHandlers: ScreenshotHandlers;
 
   constructor() {
     this.server = new Server({
@@ -62,6 +64,7 @@ class AppStoreConnectServer {
     this.analyticsHandlers = new AnalyticsHandlers(this.client, config);
     this.xcodeHandlers = new XcodeHandlers();
     this.localizationHandlers = new LocalizationHandlers(this.client);
+    this.screenshotHandlers = new ScreenshotHandlers(this.client);
 
     this.setupHandlers();
   }
@@ -827,6 +830,124 @@ class AppStoreConnectServer {
             },
             required: ["projectPath"]
           }
+        },
+
+        // Screenshot Management Tools
+        {
+          name: "list_screenshot_sets",
+          description: "List all screenshot sets for a specific app store version localization. Each set corresponds to a device display type (e.g., iPhone 6.7\", iPad Pro 12.9\").",
+          inputSchema: {
+            type: "object",
+            properties: {
+              localizationId: {
+                type: "string",
+                description: "The ID of the app store version localization"
+              }
+            },
+            required: ["localizationId"]
+          }
+        },
+        {
+          name: "create_screenshot_set",
+          description: "Create a new screenshot set for a specific device display type within a localization. A screenshot set groups screenshots for one device type in one locale.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              localizationId: {
+                type: "string",
+                description: "The ID of the app store version localization"
+              },
+              screenshotDisplayType: {
+                type: "string",
+                description: "The display type for the screenshot set",
+                enum: [
+                  "APP_IPHONE_65", "APP_IPHONE_55", "APP_IPHONE_67", "APP_IPHONE_61", "APP_IPHONE_58",
+                  "APP_IPAD_PRO_3GEN_129", "APP_IPAD_PRO_129", "APP_IPAD_PRO_11", "APP_IPAD_10_9",
+                  "APP_IPAD_10_5", "APP_IPAD_9_7"
+                ]
+              }
+            },
+            required: ["localizationId", "screenshotDisplayType"]
+          }
+        },
+        {
+          name: "list_screenshots",
+          description: "List all screenshots within a screenshot set",
+          inputSchema: {
+            type: "object",
+            properties: {
+              screenshotSetId: {
+                type: "string",
+                description: "The ID of the screenshot set"
+              }
+            },
+            required: ["screenshotSetId"]
+          }
+        },
+        {
+          name: "upload_screenshot",
+          description: "Upload a screenshot image from a local file path to a screenshot set. Handles the full 3-step process: reserve, upload binary, and commit.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              screenshotSetId: {
+                type: "string",
+                description: "The ID of the screenshot set to upload to"
+              },
+              filePath: {
+                type: "string",
+                description: "Absolute path to the screenshot image file on the local filesystem"
+              }
+            },
+            required: ["screenshotSetId", "filePath"]
+          }
+        },
+        {
+          name: "delete_screenshot",
+          description: "Delete a single screenshot from a screenshot set",
+          inputSchema: {
+            type: "object",
+            properties: {
+              screenshotId: {
+                type: "string",
+                description: "The ID of the screenshot to delete"
+              }
+            },
+            required: ["screenshotId"]
+          }
+        },
+        {
+          name: "delete_screenshot_set",
+          description: "Delete an entire screenshot set and all its screenshots",
+          inputSchema: {
+            type: "object",
+            properties: {
+              screenshotSetId: {
+                type: "string",
+                description: "The ID of the screenshot set to delete"
+              }
+            },
+            required: ["screenshotSetId"]
+          }
+        },
+        {
+          name: "reorder_screenshots",
+          description: "Reorder screenshots within a screenshot set by providing the screenshot IDs in the desired order",
+          inputSchema: {
+            type: "object",
+            properties: {
+              screenshotSetId: {
+                type: "string",
+                description: "The ID of the screenshot set"
+              },
+              screenshotIds: {
+                type: "array",
+                items: { type: "string" },
+                description: "Ordered array of screenshot IDs representing the desired display order"
+              }
+            },
+            required: ["screenshotSetId", "screenshotIds"]
+          }
         }
     ];
 
@@ -961,19 +1082,19 @@ class AppStoreConnectServer {
 
           // App Store Version Localizations
           case "create_app_store_version":
-            return { toolResult: await this.localizationHandlers.createAppStoreVersion(args as any) };
-          
+            return formatResponse(await this.localizationHandlers.createAppStoreVersion(args as any));
+
           case "list_app_store_versions":
-            return { toolResult: await this.localizationHandlers.listAppStoreVersions(args as any) };
-          
+            return formatResponse(await this.localizationHandlers.listAppStoreVersions(args as any));
+
           case "list_app_store_version_localizations":
-            return { toolResult: await this.localizationHandlers.listAppStoreVersionLocalizations(args as any) };
-          
+            return formatResponse(await this.localizationHandlers.listAppStoreVersionLocalizations(args as any));
+
           case "get_app_store_version_localization":
-            return { toolResult: await this.localizationHandlers.getAppStoreVersionLocalization(args as any) };
-          
+            return formatResponse(await this.localizationHandlers.getAppStoreVersionLocalization(args as any));
+
           case "update_app_store_version_localization":
-            return { toolResult: await this.localizationHandlers.updateAppStoreVersionLocalization(args as any) };
+            return formatResponse(await this.localizationHandlers.updateAppStoreVersionLocalization(args as any));
 
           // Bundle IDs
           case "create_bundle_id":
@@ -1033,6 +1154,31 @@ class AppStoreConnectServer {
           // Xcode Development Tools
           case "list_schemes":
             return { toolResult: await this.xcodeHandlers.listSchemes(args as any) };
+
+          // Screenshot Management
+          case "list_screenshot_sets":
+            return formatResponse(await this.screenshotHandlers.listScreenshotSets(args as any));
+
+          case "create_screenshot_set":
+            return formatResponse(await this.screenshotHandlers.createScreenshotSet(args as any));
+
+          case "list_screenshots":
+            return formatResponse(await this.screenshotHandlers.listScreenshots(args as any));
+
+          case "upload_screenshot":
+            return formatResponse(await this.screenshotHandlers.uploadScreenshot(args as any));
+
+          case "delete_screenshot":
+            await this.screenshotHandlers.deleteScreenshot(args as any);
+            return formatResponse({ success: true });
+
+          case "delete_screenshot_set":
+            await this.screenshotHandlers.deleteScreenshotSet(args as any);
+            return formatResponse({ success: true });
+
+          case "reorder_screenshots":
+            await this.screenshotHandlers.reorderScreenshots(args as any);
+            return formatResponse({ success: true });
 
           default:
             throw new McpError(

@@ -37,3 +37,107 @@ export const SCREENSHOT_DIMENSIONS: Record<ScreenshotDisplayType, { width: numbe
   'APP_IPAD_10_5': { width: 1668, height: 2224 },
   'APP_IPAD_9_7': { width: 1536, height: 2048 },
 };
+
+// Upload operation returned by Apple's asset delivery infrastructure
+export interface UploadOperation {
+  method: string;
+  url: string;
+  length: number;
+  offset: number;
+  requestHeaders: { name: string; value: string }[];
+}
+
+// Individual screenshot resource
+export interface AppScreenshot {
+  id: string;
+  type: string;
+  attributes: {
+    fileSize: number;
+    fileName: string;
+    sourceFileChecksum?: string;
+    imageAsset?: {
+      templateUrl: string;
+      width: number;
+      height: number;
+    };
+    assetDeliveryState?: {
+      state: string;
+      errors?: { code: string; description: string }[];
+    };
+    uploadOperations?: UploadOperation[];
+  };
+}
+
+export interface AppScreenshotResponse {
+  data: AppScreenshot;
+}
+
+export interface ListAppScreenshotsResponse {
+  data: AppScreenshot[];
+}
+
+// Create screenshot set request
+export interface CreateScreenshotSetRequest {
+  data: {
+    type: 'appScreenshotSets';
+    attributes: {
+      screenshotDisplayType: ScreenshotDisplayType;
+    };
+    relationships: {
+      appStoreVersionLocalization: {
+        data: {
+          type: 'appStoreVersionLocalizations';
+          id: string;
+        };
+      };
+    };
+  };
+}
+
+export interface ScreenshotSetResponse {
+  data: ScreenshotSet;
+}
+
+// Reserve screenshot upload request
+export interface ReserveScreenshotUploadRequest {
+  data: {
+    type: 'appScreenshots';
+    attributes: {
+      fileName: string;
+      fileSize: number;
+    };
+    relationships: {
+      appScreenshotSet: {
+        data: {
+          type: 'appScreenshotSets';
+          id: string;
+        };
+      };
+    };
+  };
+}
+
+// Commit screenshot upload request
+export interface CommitScreenshotUploadRequest {
+  data: {
+    type: 'appScreenshots';
+    id: string;
+    attributes: {
+      sourceFileChecksum: string;
+      uploaded: boolean;
+    };
+  };
+}
+
+// Reorder screenshots request
+export interface ReorderScreenshotsRequest {
+  data: {
+    type: 'appScreenshotSets';
+    id: string;
+    relationships: {
+      appScreenshots: {
+        data: { type: 'appScreenshots'; id: string }[];
+      };
+    };
+  };
+}
